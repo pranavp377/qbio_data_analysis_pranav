@@ -87,5 +87,5 @@ clinic <- read.csv("clinic.csv")
              axis.text = element_text(size=16),
              legend.title = element_text(size=14),
              legend.text = element_text(size=9))
-     q
+     q #prints graph
       
