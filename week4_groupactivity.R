@@ -1,20 +1,3 @@
-# this will install packages (if necessary) and load them
-if(!require(BiocManager)) install.packages("BiocManager")
-
-# the double colon syntax calls a function from a specific package
-# this avoids loading the entire package
-# in this case, we need to download TCGAbiolinks from Bioconductor using BiocManager
-if(!require(TCGAbiolinks)) BiocManager::install("TCGAbiolinks")
-
-# this just loads a package
-library(TCGAbiolinks)
-clin_query <- GDCquery(project = "TCGA-COAD", data.category = "Clinical", file.type = "xml")
-# Only use this line ONCE! Comment out after you have downloaded the data. 
-GDCdownload(clin_query)
-clinic <- GDCprepare_clinic(clin_query, clinical.info = "patient")
-# Just adding an underscore between follow and up
-names(clinic)[names(clinic)=="days_to_last_followup"] <- "days_to_last_follow_up"
-
 clinic <- read.csv("clinic.csv")
 
 #Written Activity
@@ -50,11 +33,59 @@ clinic <- read.csv("clinic.csv")
   # 2) Hypothesis 2: The survival in colorectal cancer of patients categorized as female is likely to be higher than that of patients categorized as male.
   # 3) Hypothesis 3: Patients with a lower height are likely to have a higher survival than patients with a higher height.
   
+#7 
+  #I learned that females have a higher survival probability than males after a short amount of time (500 time units). Height varies, with short people showing a slightly less probabilty at the beginning, but higher probability of survival at the later times.
+  
   
 #Coding
   #1
   
       boxplot(c$height ~ c$gender, xlab = "Gender", ylab = "Height (cm)", main = "Height Distribution per Each Gender") #creates boxplot that compares the height distributions in females and males
       #the boxplot shows that the results are inconclusive, as there is overlap in the two boxplots. however, the average height in males is higher than that of females in the graph.
-  
-  
+      
+#2      
+      install.packages("survival")
+      library("survival")
+      install.packages("survminer")
+      library("survminer") 
+      library(dplyr)
+      
+      clinic$days_to_death
+      clinic$days_to_last_follow_up
+      clinic$days_to_death <- coalesce(clinic$days_to_death, clinic$days_to_last_follow_up) #replacing NA values with corresponding values from last followup     
+      clinic$days_to_death      
+      
+      clinic$death_event <- ifelse(clinic$vital_status == "Alive", 0, 1) #creates a column that tells the patient's current vital status
+      #first variable
+      surv_object <- Surv(time = clinic$days_to_death, 
+                          event = clinic$death_event) #creates a survival object
+      gender_fit <- surv_fit( surv_object ~ clinic$gender, data = clinic ) #creates a fit object for gender that will be used to create the survival plot
+      survplot = ggsurvplot(gender_fit, 
+                            pval=TRUE, 
+                            ggtheme = theme(plot.margin = unit(c(1,1,1,1), "cm")), #plotting of the graph and creating a legend
+                            legend = "right")
+      p = survplot$plot + 
+        theme_bw() +  # changes the appearance
+        theme(axis.title = element_text(size=20), # increase font sizes
+              axis.text = element_text(size=16),
+              legend.title = element_text(size=14),
+              legend.text = element_text(size=9))
+      p
+      #second variable
+     clinic <- clinic[!is.na(clinic$height),]
+     clinic$catheight <- ifelse(c$height < 165, "Short", "Tall") #creates categorical data for height
+     surv_object <- Surv(time = clinic$days_to_death, 
+                         event = clinic$death_event) #creates a survival object
+     height_fit <- surv_fit( surv_object ~ clinic$catheight, data = clinic ) #creates a fit object for height that will be used to create the survival plot
+     survplot = ggsurvplot(height_fit, 
+                           pval=TRUE, 
+                           ggtheme = theme(plot.margin = unit(c(1,1,1,1), "cm")), #plotting of the graph and creating a legend
+                           legend = "right") #plotting of graph and creating legend
+     q = survplot$plot + 
+       theme_bw() +  # changes the appearance
+       theme(axis.title = element_text(size=20), # increase font sizes
+             axis.text = element_text(size=16),
+             legend.title = element_text(size=14),
+             legend.text = element_text(size=9))
+     q
+      
